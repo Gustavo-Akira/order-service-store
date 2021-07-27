@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 
 import br.com.gustavoakira.store.orderservice.core.data.OrderEntity;
 import br.com.gustavoakira.store.orderservice.core.data.OrderRepository;
+import br.com.gustavoakira.store.orderservice.core.event.OrderApprovedEvent;
 import br.com.gustavoakira.store.orderservice.core.event.OrderCreatedEvent;
+import br.com.gustavoakira.store.orderservice.core.event.OrderRejectedEvent;
 
 @Component
 @ProcessingGroup("order-group")
@@ -25,5 +27,23 @@ public class OrderEventHandler {
 		OrderEntity entity = new OrderEntity();
 		BeanUtils.copyProperties(event, entity);
 		this.repository.save(entity);
+	}
+	
+	@EventHandler
+	public void on(OrderApprovedEvent approvedEvent) {
+		OrderEntity entity = repository.findByOrderId(approvedEvent.getOrderId());
+		if(entity == null) {
+			return;
+		}
+		
+		entity.setOrderStatus(approvedEvent.getOrderStatus());
+		repository.save(entity);
+	}
+	
+	@EventHandler
+	public void on(OrderRejectedEvent event) {
+		OrderEntity entity = repository.getById(event.getOrderId());
+		entity.setOrderStatus(event.getOrderStatus());
+		repository.save(entity);
 	}
 }
